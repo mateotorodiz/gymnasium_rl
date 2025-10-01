@@ -51,7 +51,7 @@ class GridWorldEnv(gym.Env):
         Returns:
             dict: Info with distance between agent and target
         """
-        return ""
+        return self.fall_of_cliff()
     
     def randomized_action(self,action):
         if np.random.random() <= 0.8:
