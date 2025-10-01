@@ -3,6 +3,8 @@ from tqdm import tqdm
 from GridWorldAgent import GridWorldAgent
 from GridWorldEnv import GridWorldEnv
 import numpy as np
+import matplotlib.pyplot as plt
+from typing import List
 
 class Trainer:
     def __init__(self,
@@ -13,20 +15,43 @@ class Trainer:
         self.env = env
         self.agent = agent
         self.n_episodes = n_episodes
+        self.Gt = 0
+        self.episode_rewards = []
+
+    
+    def plot_learning_curve(self, rolling_window: int = 100, title: str = "Learning Curve"):
+        """
+        Compute and plot the rolling average of rewards over episodes.
+        """
+        rewards = np.array(self.episode_rewards)
+        rolling_avg = np.convolve(rewards, np.ones(rolling_window)/rolling_window, mode='valid')
+
+        plt.figure(figsize=(10,5))
+        # Shift x-axis to start from the (rolling_window-1)-th episode
+        plt.plot(range(rolling_window - 1, len(rewards)), rolling_avg, color='blue', label=f'Rolling avg (window={rolling_window})')
+        plt.xlabel("Episode")
+        plt.ylabel("Average Reward")
+        plt.title(title)
+        plt.grid(True)
+        plt.legend()
+        plt.show()
+
 
     def train(self):
         for episode in tqdm(range(self.n_episodes)):
             obs,info  = self.env.reset()
             done = False
+            self.Gt = 0
             
             while not done:
                 action = self.agent.get_action(obs)
-
                 next_obs,reward,terminated,truncated,info = self.env.step(action)
+                self.Gt += reward
                 self.agent.update(obs,action,reward,terminated,next_obs)
                 done = terminated or truncated
                 obs = next_obs
             self.agent.decay_epsilon()
+            self.episode_rewards.append(self.Gt)
     
     def evaluate(self):
         successes = 0
@@ -47,9 +72,7 @@ class Trainer:
                 obs = next_obs
                 steps += 1
                 Gt += reward
-                print(obs)
-            
-            
+                     
             steps_list.append(steps)
             reward_list.append(Gt)
 
@@ -73,4 +96,5 @@ agent = GridWorldAgent(
 )
 trainer = Trainer(env,agent,n_episodes)
 trainer.train()
+trainer.plot_learning_curve()
 trainer.evaluate()

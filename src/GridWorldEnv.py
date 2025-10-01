@@ -52,6 +52,13 @@ class GridWorldEnv(gym.Env):
             dict: Info with distance between agent and target
         """
         return ""
+    
+    def randomized_action(self,action):
+        if np.random.random() <= 0.8:
+            return action
+        else:
+            return self.action_space.sample()
+
     def reset(self, seed: Optional[int] = None, options: Optional[dict] = None):
         """Start a new episode.
 
@@ -91,8 +98,9 @@ class GridWorldEnv(gym.Env):
     def found_target(self):
         if self._agent_location[0] == self._target_location[0] and self._agent_location[1] == self._target_location[1]:
             return True
+    
     def step(self,action):
-
+        action = self.randomized_action(action)
         direction= self._action_to_direction[action]
         x_clipped = np.clip(self._agent_location[0]+direction[0], 0, self.size[0]-1)
         y_clipped = np.clip(self._agent_location[1]+direction[1],0,self.size[1]-1)
