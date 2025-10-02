@@ -116,6 +116,8 @@ class GridWorldMCAgent:
             steps_list.append(steps)
             reward_list.append(Gt)
         print("Evaluating the agent")
+        print(obs)
+
         print("Returned reward:", reward_list)
         print("Info on whether agent fell of cliff: ", info_list)
         print("Average steps:", sum(steps_list) / len(steps_list))
@@ -151,7 +153,7 @@ class GridWorldMCAgent:
 
 
 if __name__ == "__main__":
-    n_episodes = 10000
+    n_episodes = 100000
     Nzero = 500  #! Not used right now
     env = GridWorldEnv(max_steps=200)
     agent = GridWorldMCAgent(

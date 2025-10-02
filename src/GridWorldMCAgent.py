@@ -57,7 +57,7 @@ class GridWorldMCAgent:
             self.N_states_actions[s][a] += 1
             
             error = Gt - self.q_values[s][a]
-            self.q_values[s][a] += self.get_alpha(s, a) * error
+            self.q_values[s][a] += 0.01 * error
             
             j += 1
 
@@ -81,6 +81,7 @@ class GridWorldMCAgent:
         steps_list = []
         reward_list = []
         info_list = []
+        final_observation_list = []
 
         self.epsilon = 0.0  # purely greedy
 
@@ -100,15 +101,17 @@ class GridWorldMCAgent:
             info_list.append(info)         
             steps_list.append(steps)
             reward_list.append(Gt)
+            final_observation_list.append(obs)
         print("Evaluating the agent")
         print(obs)
         print("Returned reward:", reward_list)
         print("Info on whether agent fell of cliff: ", info_list)
+        print("the final observation list is: ", final_observation_list)
         #print("Average steps (for successes):", np.mean([s for s,r in zip(steps_list, [reward]*100) if r==1]))    
 
 
 
-n_episodes = 30000
+n_episodes = 300000
 Nzero = 100
 env = GridWorldEnv()
 
