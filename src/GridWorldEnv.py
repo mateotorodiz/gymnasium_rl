@@ -107,6 +107,7 @@ class GridWorldEnv(gym.Env):
         self._agent_location = (x_clipped,y_clipped)
         
         if self.fall_of_cliff():
+            self._agent_location = (3,0)
             terminated = True
             truncated = False
             reward = -100
