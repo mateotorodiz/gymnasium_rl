@@ -5,8 +5,18 @@ import gymnasium as gym
 import random
 
 class GridWorldEnv(gym.Env):
+    """
+    A flexible grid-world environment for reinforcement learning experiments.
+    The agent must navigate a grid to reach a target, avoiding a cliff region
+    that penalizes falling off. The environment supports variable grid sizes.
+    """   
+    def __init__(self, size: Tuple = (4,20)):
+        """
+        Initialize the grid-world environment.
 
-    def __init__(self, size: Tuple = (4,12)):
+        Args:
+            size (Tuple): Dimensions of the grid as (rows, columns).
+        """
         # The size of the square grid (5x5 by default)
         self.size = size
 
@@ -36,44 +46,56 @@ class GridWorldEnv(gym.Env):
         }
     
     def _get_obs(self):
-        """Convert internal state to observation format.
+        """
+        Get the current observation of the environment.
 
         Returns:
-            tuple: Observation with agent and target positions
+            tuple: Agent and target positions as ((row, col), (row, col)).
         """
         agent = tuple(int(x) for x in self._agent_location)
         target = tuple(int(x) for x in self._target_location)
         return (agent, target)
 
     def _get_info(self):
-        """Compute auxiliary information for debugging.
+        """
+        Get auxiliary information about the environment.
 
         Returns:
-            dict: Info with distance between agent and target
+            bool: True if agent has fallen off the cliff, False otherwise.
         """
         return self.fall_of_cliff()
     
     def randomized_action(self,action):
+        """
+        With 80% probability, returns the intended action; otherwise returns a random action.
+
+        Args:
+            action (int): Intended action.
+
+        Returns:
+            int: Possibly randomized action.
+        """
         if np.random.random() <= 0.8:
             return action
         else:
             return self.action_space.sample()
 
     def reset(self, seed: Optional[int] = None, options: Optional[dict] = None):
-        """Start a new episode.
+        """
+        Reset the environment to start a new episode.
 
         Args:
-            seed: Random seed for reproducible episodes
-            options: Additional configuration (unused in this example)
+            seed (Optional[int]): Random seed.
+            options (Optional[dict]): Additional options (unused).
 
         Returns:
-            tuple: (observation, info) for the initial state
+            tuple: Initial observation and info.
         """
         # IMPORTANT: Must call this first to seed the random number generator
         super().reset(seed=seed)
 
         # Place fixed agent
-        self._agent_location = (2,random.randint(0,self.size[1] - 3))
+        self._agent_location = (2,random.randint(0,self.size[1] - int(self.size[1]*0.75)))
 
         # Place fixed target
         self._target_location = (3,self.size[1]-1)
@@ -86,9 +108,10 @@ class GridWorldEnv(gym.Env):
     
     def fall_of_cliff(self):
         """
-        Check if the agent has fallen off a cliff
-        If so, reward will be very negative
-        Agent should be returned to starting position
+        Check if the agent has fallen off the cliff.
+
+        Returns:
+            bool: True if agent is on the cliff, False otherwise.
         """
         if self._agent_location[0] == 3 and self._agent_location[1] > 1 and self._agent_location[1] < self.size[1] - 2:
             return True
@@ -96,10 +119,25 @@ class GridWorldEnv(gym.Env):
             return False
         
     def found_target(self):
+        """
+        Check if the agent has reached the target.
+
+        Returns:
+            bool: True if agent is at the target location, False otherwise.
+        """
         if self._agent_location[0] == self._target_location[0] and self._agent_location[1] == self._target_location[1]:
             return True
     
     def step(self,action):
+        """
+        Take an action in the environment.
+
+        Args:
+            action (int): Action to take.
+
+        Returns:
+            tuple: (observation, reward, terminated, truncated, info)
+        """
         action = self.randomized_action(action)
         direction= self._action_to_direction[action]
         x_clipped = np.clip(self._agent_location[0]+direction[0], 0, self.size[0]-1)

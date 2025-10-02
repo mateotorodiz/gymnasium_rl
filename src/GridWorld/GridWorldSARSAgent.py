@@ -6,6 +6,10 @@ from tqdm import tqdm
 from GridWorldEnv import GridWorldEnv
 
 class GridWorldSARSAgent:
+    """
+    SARSA agent for the GridWorld environment.
+    Learns an action-value function using the SARSA algorithm with epsilon-greedy exploration.
+    """
     def __init__(self,
                  env: gym.Env,
                  Nzero: int,
@@ -13,7 +17,13 @@ class GridWorldSARSAgent:
                  discount_factor: float = 1.00,
                  ):
         """
-        Initialize a Q-learning agent for my grid-world environment
+        Initialize the SARSA agent.
+
+        Args:
+            env (gym.Env): The GridWorld environment.
+            Nzero (int): Parameter for epsilon schedule (unused if fixed epsilon).
+            n_episodes (int): Number of training episodes.
+            discount_factor (float): Discount factor for future rewards.
         """
         self.env = env
         self.n_episodes = n_episodes
@@ -29,26 +39,68 @@ class GridWorldSARSAgent:
         self.training_error = []
 
     def get_action(self,obs) -> int:
+        """
+        Select an action using epsilon-greedy policy.
+
+        Args:
+            obs: Current observation.
+
+        Returns:
+            int: Selected action.
+        """
         if np.random.random() < 0.1:
             return self.env.action_space.sample()
         else:
             return int(np.argmax(self.q_values[obs]))
         
     def count_visits(self,obs,action):
+        """
+        Increment visit counters for state and state-action pairs.
+
+        Args:
+            obs: Current observation.
+            action (int): Action taken.
+        """
         self.N_states[obs] +=1
         self.N_states_actions[obs][action] +=1
 
     def get_epsilon(self, obs):
+        """
+        Compute epsilon for epsilon-greedy policy based on state visits.
+
+        Args:
+            obs: Current observation.
+
+        Returns:
+            float: Epsilon value.
+        """
         return self.Nzero/(self.Nzero + self.N_states[obs])
 
     def get_alpha(self,obs,action):
+        """
+        Compute learning rate alpha based on state-action visits.
+
+        Args:
+            obs: Current observation.
+            action (int): Action taken.
+
+        Returns:
+            float: Alpha value.
+        """
         return 1/self.N_states_actions[obs][action]
 
 
     def update(self, s,a,sp,ap,r,done):
         """
-        Efficient every-visit MC update.
-        Computes returns backward in one pass (O(n) instead of O(n^2)).
+        Perform the SARSA update for Q-values.
+
+        Args:
+            s: Current state.
+            a (int): Action taken.
+            sp: Next state.
+            ap (int): Next action.
+            r (float): Reward received.
+            done (bool): Whether the episode has terminated.
         """
         if not done:
             self.q_values[s][a] = self.q_values[s][a] + 0.1*(r+self.discount_factor*self.q_values[sp][ap] - self.q_values[s][a])
@@ -56,6 +108,9 @@ class GridWorldSARSAgent:
              self.q_values[s][a] = self.q_values[s][a] + 0.1*(r - self.q_values[s][a])
 
     def train(self):
+        """
+        Train the SARSA agent over multiple episodes.
+        """
         for episode in tqdm(range(self.n_episodes)):
             obs,info  = self.env.reset()
             done = False
@@ -73,6 +128,10 @@ class GridWorldSARSAgent:
 
 
     def evaluate(self):
+        """
+        Evaluate the SARSA agent's performance over several episodes.
+        Prints summary statistics.
+        """
         successes = 0
         steps_list = []
         reward_list = []
