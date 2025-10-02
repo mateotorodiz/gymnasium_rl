@@ -6,7 +6,7 @@ import random
 
 class GridWorldEnv(gym.Env):
 
-    def __init__(self, size: Tuple = (4,6)):
+    def __init__(self, size: Tuple = (4,12)):
         # The size of the square grid (5x5 by default)
         self.size = size
 

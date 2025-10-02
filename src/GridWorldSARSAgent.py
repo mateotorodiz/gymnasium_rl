@@ -98,8 +98,7 @@ class GridWorldSARSAgent:
             steps_list.append(steps)
             reward_list.append(Gt)
             final_observation_list.append(obs)
-        print("Evaluating the agent")
-        print(obs)
+        print("Evaluating the SARSA agent")
         print("Returned reward:", reward_list)
         print("Info on whether agent fell of cliff: ", info_list)
         print("the final observation list is: ", final_observation_list)
@@ -107,7 +106,7 @@ class GridWorldSARSAgent:
 
 
 
-n_episodes = 100000
+n_episodes = 50000
 Nzero = 100
 env = GridWorldEnv()
 
