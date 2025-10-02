@@ -102,7 +102,7 @@ class GridWorldMCAgent:
             steps_list.append(steps)
             reward_list.append(Gt)
             final_observation_list.append(obs)
-        print("Evaluating the agent")
+        print("Evaluating the MC agent")
         print(obs)
         print("Returned reward:", reward_list)
         print("Info on whether agent fell of cliff: ", info_list)
@@ -111,9 +111,9 @@ class GridWorldMCAgent:
 
 
 
-n_episodes = 100000
+n_episodes = 1
 Nzero = 100
-env = GridWorldEnv()
+env = GridWorldEnv(size=(4,5))
 
 agent = GridWorldMCAgent(
     env = env,
