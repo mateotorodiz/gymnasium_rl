@@ -5,7 +5,7 @@ from tqdm import tqdm
 
 from GridWorldEnv import GridWorldEnv
 
-class GridWorldMCAgent:
+class GridWorldSARSAgent:
     def __init__(self,
                  env: gym.Env,
                  Nzero: int,
@@ -29,7 +29,7 @@ class GridWorldMCAgent:
         self.training_error = []
 
     def get_action(self,obs) -> int:
-        if np.random.random() < self.get_epsilon(obs):
+        if np.random.random() < 0.1:
             return self.env.action_space.sample()
         else:
             return int(np.argmax(self.q_values[obs]))
@@ -45,35 +45,31 @@ class GridWorldMCAgent:
         return 1/self.N_states_actions[obs][action]
 
 
-    def update(self, episode):
+    def update(self, s,a,sp,ap,r,done):
         """
         Efficient every-visit MC update.
         Computes returns backward in one pass (O(n) instead of O(n^2)).
         """
-        j = 0
-        for s, a, _ in episode: 
-            Gt = sum([x[2]*(self.discount_factor**i) for i,x in enumerate(episode[j:])])
-            
-            self.N_states_actions[s][a] += 1
-            
-            error = Gt - self.q_values[s][a]
-            self.q_values[s][a] += 0.1 * error
-            
-            j += 1
+        if not done:
+            self.q_values[s][a] = self.q_values[s][a] + 0.1*(r+self.discount_factor*self.q_values[sp][ap] - self.q_values[s][a])
+        else:
+             self.q_values[s][a] = self.q_values[s][a] + 0.1*(r - self.q_values[s][a])
 
     def train(self):
         for episode in tqdm(range(self.n_episodes)):
             obs,info  = self.env.reset()
             done = False
             episode_info = []
-            
+            action = self.get_action(obs)
             while not done:
-                action = self.get_action(obs)
                 next_obs,reward,terminated,truncated,info = self.env.step(action)
+                next_action = self.get_action(next_obs)
                 done = terminated or truncated
+                self.update(obs,action,next_obs,next_action,reward,done)
+                #sar
                 episode_info.append((obs,action,reward))
                 obs = next_obs
-            self.update(episode_info)
+                action = next_action
 
 
     def evaluate(self):
@@ -115,7 +111,7 @@ n_episodes = 100000
 Nzero = 100
 env = GridWorldEnv()
 
-agent = GridWorldMCAgent(
+agent = GridWorldSARSAgent(
     env = env,
     Nzero=Nzero,
     n_episodes=n_episodes
