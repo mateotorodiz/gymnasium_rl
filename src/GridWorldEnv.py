@@ -6,7 +6,7 @@ import random
 
 class GridWorldEnv(gym.Env):
 
-    def __init__(self, size: Tuple = (4,12)):
+    def __init__(self, size: Tuple = (4,6)):
         # The size of the square grid (5x5 by default)
         self.size = size
 
@@ -73,10 +73,10 @@ class GridWorldEnv(gym.Env):
         super().reset(seed=seed)
 
         # Place fixed agent
-        self._agent_location = (3,0)
+        self._agent_location = (2,random.randint(0,self.size[1] - 3))
 
         # Place fixed target
-        self._target_location = (3,11)
+        self._target_location = (3,self.size[1]-1)
 
 
         observation = self._get_obs()
@@ -90,7 +90,7 @@ class GridWorldEnv(gym.Env):
         If so, reward will be very negative
         Agent should be returned to starting position
         """
-        if self._agent_location[0] == 3 and self._agent_location[1] > 1 and self._agent_location[1] < 11:
+        if self._agent_location[0] == 3 and self._agent_location[1] > 1 and self._agent_location[1] < self.size[1] - 2:
             return True
         else:
             return False
