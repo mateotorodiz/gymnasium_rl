@@ -7,12 +7,16 @@ class JobScheduleEnv(gym.Env):
         self.machines = [(0,0)] * n_machines
         self.jobs_remaining = -1
         self.max_time = 10
-        self.max_jobs = 10
+        self.max_jobs = 20
         self.time_step = 0
 
         self.idle_reward = 0
         self.finish_reward = 10
         self.invalid_assignment_reward = -1
+
+        self.idle_steps = 0
+        self.finished_jobs = 0
+        self.incorrect_asignments = 0
 
 
         obs_spaces = []
@@ -34,6 +38,9 @@ class JobScheduleEnv(gym.Env):
 
         self.jobs_remaining = random.randint(1,self.max_jobs)
         self.time_step = 0
+        self.finished_jobs = 0
+        self.idle_steps  = 0
+        self.incorrect_asignments = 0
 
         obs = self._get_obs()
         info = self._get_info()
@@ -53,18 +60,21 @@ class JobScheduleEnv(gym.Env):
                     if self.check_finished_job(i): # if the machine then finishes
                         self.machines[i] = (0, 0)
                         reward += self.finish_reward
+                        self.finished_jobs += 1
                 else: # machine has idled
                     reward += self.idle_reward
+                    self.idle_steps += 1
 
         else:
             # the action number matches the machine, at which we want to execute the job
             # ensure that the machine is idling (or not)
-            if self.is_idling(action):
-                self.machines[action] = (1,self.generate_job_time())
+            if self.is_idling(action-1):
+                self.machines[action-1] = (1,self.generate_job_time())
                 self.jobs_remaining -= 1
                 # assign a job to the machine
             else:
                 reward -= self.invalid_assignment_reward
+                self.incorrect_asignments += 1
                 # machine is already working, cannot assign a job to it
         if self.jobs_remaining == 0:
             reward += 100
@@ -79,7 +89,10 @@ class JobScheduleEnv(gym.Env):
         return (tuple(self.machines),self.jobs_remaining)
 
     def _get_info(self):
-        return {"time_step": self.time_step}
+        return {"time_step": self.time_step,
+                 "idle_steps": self.idle_steps,
+                   "finished_jobs": self.finished_jobs,
+                   "incorrect_assignments": self.incorrect_asignments}
     
     def check_finished_job(self,machine_index):
         return self.machines[machine_index][1] == 0
@@ -92,16 +105,24 @@ class JobScheduleEnv(gym.Env):
 
     
 if __name__ == "__main__":
-    n_machines = 2
+    n_machines = 5
     env = JobScheduleEnv(n_machines = n_machines)
+    print(type(env.machines[0][0]))
     Gt = 0
-    done = False
+    rewards = list()
+    infos = list()
     for i in range(200):
+        done = False
+        obs,info = env.reset()
+        Gt = 0
         while not done:
-            obs,info = env.reset()
-            obs,reward,terminated,truncated,info = env.step(random.randint(0,n_machines))
+            action = random.randint(0,n_machines)
+            obs,reward,terminated,truncated,info = env.step(action)
             done = terminated or truncated
             Gt += reward
+        rewards.append(Gt)
+        infos.append(info)
     
-    print(reward)
+    print(rewards)
+    print(infos)
     #mini test bench
