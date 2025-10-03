@@ -3,7 +3,7 @@ import random
 
 class JobScheduleEnv(gym.Env):
     def __init__(self, n_machines):
-        # create a list of machines
+        # create a list of machines, each represented as (state, time_remaining)
         self.machines = [(0,0)] * n_machines
         self.jobs_remaining = -1
         self.max_time = 10
@@ -18,7 +18,7 @@ class JobScheduleEnv(gym.Env):
         self.finished_jobs = 0
         self.incorrect_asignments = 0
 
-
+        # Define observation space for each machine and jobs remaining
         obs_spaces = []
         for _ in range(n_machines):
             obs_spaces.append(
@@ -33,10 +33,11 @@ class JobScheduleEnv(gym.Env):
         self.action_space = gym.spaces.Discrete(n_machines)
 
     def reset(self, *, seed = None, options = None):
+        # Reset all machines to idle state
         for i in range(len(self.machines)):
             self.machines[i] = (0,0)
 
-        self.jobs_remaining = random.randint(1,self.max_jobs)
+        self.jobs_remaining = self.max_jobs
         self.time_step = 0
         self.finished_jobs = 0
         self.idle_steps  = 0
@@ -48,7 +49,7 @@ class JobScheduleEnv(gym.Env):
         return obs, info
         
     def step(self, action):
-        # Every step is penalized with -1, will only be different if something happens
+        # Every step is penalized with -1, will only be different if something happens in job scheduling
         reward = -1
         terminated = False
         self.time_step +=1
@@ -57,7 +58,7 @@ class JobScheduleEnv(gym.Env):
                 if not self.is_idling(i):
                     state, time = self.machines[i]
                     self.machines[i] = (state, max(0, time - 1))
-                    if self.check_finished_job(i): # if the machine then finishes
+                    if self.check_finished_job(i): # if the machine then finishes its job
                         self.machines[i] = (0, 0)
                         reward += self.finish_reward
                         self.finished_jobs += 1
@@ -107,7 +108,7 @@ class JobScheduleEnv(gym.Env):
 if __name__ == "__main__":
     n_machines = 5
     env = JobScheduleEnv(n_machines = n_machines)
-    print(type(env.machines[0][0]))
+    print("Type of machine state:", type(env.machines[0][0]))
     Gt = 0
     rewards = list()
     infos = list()
@@ -123,6 +124,8 @@ if __name__ == "__main__":
         rewards.append(Gt)
         infos.append(info)
     
+    print("Total rewards per episode (job scheduling):")
     print(rewards)
+    print("Episode info (job scheduling):")
     print(infos)
     #mini test bench
