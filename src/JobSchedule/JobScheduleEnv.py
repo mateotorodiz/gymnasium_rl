@@ -1,5 +1,6 @@
 import gymnasium as gym
 import random
+random.seed(42)
 
 class JobScheduleEnv(gym.Env):
     def __init__(self, n_machines):
@@ -91,9 +92,9 @@ class JobScheduleEnv(gym.Env):
 
     def _get_info(self):
         return {"time_step": self.time_step,
-                 "idle_steps": self.idle_steps,
-                   "finished_jobs": self.finished_jobs,
-                   "incorrect_assignments": self.incorrect_asignments}
+                "idle_steps": self.idle_steps,
+                "finished_jobs": self.finished_jobs,
+                "incorrect_assignments": self.incorrect_asignments}
     
     def check_finished_job(self,machine_index):
         return self.machines[machine_index][1] == 0
@@ -102,7 +103,7 @@ class JobScheduleEnv(gym.Env):
         return self.machines[machine_index][0] == 0
 
     def generate_job_time(self):
-        return random.randint(1,self.max_time)
+        return self.max_time #random.randint(1,self.max_time)
 
     
 if __name__ == "__main__":
