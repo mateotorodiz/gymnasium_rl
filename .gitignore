@@ -1,3 +1,6 @@
 /.venv
 **/__pycache__/
-**/__logs__/
+**/logs/
+**/models/
+**/ppo_mountaincar_tensorboard
+ppo_cartpole.zip
