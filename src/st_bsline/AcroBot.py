@@ -55,19 +55,24 @@ class HyperparamLogger(BaseCallback):
                 pass
         return None
 
+    def _on_step(self) -> bool:
+        # No per-step logic; returning True allows training to continue
+        return True
+
 
 env = gym.make("Acrobot-v1", render_mode=None)
 
 # Define hyperparameters in one place so we can both pass them to A2C and log them
-learning_rate = 1e-3
-n_steps = 16
+learning_rate = 7e-4
+n_steps = 5
 gamma = 0.99
-ent_coef = 0.01
+ent_coef = 0.0
 vf_coef = 0.5
-max_grad_norm = 2.0
+max_grad_norm = 0.5
 use_rms_prop = True
 policy_kwargs = {"net_arch": [64, 64]}
 tensorboard_root = "./a2c_acrobot"
+time_steps = 100000
 
 # Build a readable TensorBoard run name with key hyperparameters
 tb_run_name = (
@@ -105,7 +110,12 @@ model = A2C(
 )
 
 callback = HyperparamLogger(hparams)
-model.learn(total_timesteps=200_000, tb_log_name=tb_run_name, callback=callback)
+
+# Allow overriding total timesteps via env var for quick tests
+_tt_override = os.getenv("SB3_TOTAL_TIMESTEPS")
+total_timesteps = int(_tt_override) if _tt_override is not None else time_steps
+
+model.learn(total_timesteps=total_timesteps, tb_log_name=tb_run_name, callback=callback)
 model.save("a2c_acrobot")
 
 mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=10)
