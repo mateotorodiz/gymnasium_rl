@@ -3,4 +3,6 @@
 **/logs/
 **/models/
 **/ppo_mountaincar_tensorboard
+**/a2c_acrobot
 ppo_cartpole.zip
+a2c_acrobot.zip
