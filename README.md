@@ -1,0 +1,2 @@
+# README
+This is just a messy repo to learn how to do RL, the code quality is rather low, as the objective is to learn as much about RL as possible in minimum time. Once projects become more complex I will take into account coding best practices :)
