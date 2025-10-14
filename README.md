@@ -23,3 +23,16 @@ Pay attention to training times, maybe the code changes have made learning ineff
 ### Multiple environment training
 Not as easy as it may seem at first. Ensure you add a "rank" for the Monitor Wrapper when using SubprocVecEnv, otherwise may be overwriting Monitor.csv file. Generally be careful with the process. Use a single env and it will take ages, use too many envs and you will have way too much overhead. Prefer SubprocVecEnv to use multiple cores. Need to understand inner workings a bit better to implement it myself.
 
+### Callbacks
+Experiment with them later today
+Seem quite useful
+Some of them could even be a default, will try to make my own selection of them
+
+- progress_bar = True (parameter when using model.learn()) -> useful visual of the progress
+- checkpoint callback: save the model every certain n of steps
+- eval callback: periodically evaluate the agent with a separate test event. Can add other callbacks on top 
+- Stop Training on Reward threshold: uses the eval callback (called from it). Stops learning once a reward threshold is achieved
+- Every N timesteps: self explanatory
+- LogEveryNTimeSteps: same
+- StopTrainingonMaxEpisodes: as it sounds. Episodes per env
+- StopTrainingOnNoModellImprovement: as it sounds, based on eval callback. needs min n_episodes and n_stale_episodes

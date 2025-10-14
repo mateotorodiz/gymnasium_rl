@@ -7,3 +7,5 @@
 ppo_cartpole.zip
 a2c_acrobot.zip
 **/sac_logs/
+**/sac_best/
+**/sac_eval_logs/
