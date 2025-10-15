@@ -4,8 +4,8 @@
 **/models/
 **/ppo_mountaincar_tensorboard
 **/a2c_acrobot
-ppo_cartpole.zip
-a2c_acrobot.zip
+**/ppo_cartpole.zip
+**/a2c_acrobot.zip
 **/sac_logs/
 **/sac_best/
 **/sac_eval_logs/
