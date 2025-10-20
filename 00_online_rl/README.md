@@ -36,3 +36,4 @@ Some of them could even be a default, will try to make my own selection of them
 - LogEveryNTimeSteps: same
 - StopTrainingonMaxEpisodes: as it sounds. Episodes per env
 - StopTrainingOnNoModellImprovement: as it sounds, based on eval callback. needs min n_episodes and n_stale_episodes
+		
