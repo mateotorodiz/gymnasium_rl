@@ -103,8 +103,10 @@ if __name__ == "__main__":
     # Initialize algorithms with constructor args supported across versions
     bcconf = BCConfig()  # avoid batch_size/learning_rate/use_gpu in __init__
     cqlconf = CQLConfig()  # keep only clearly supported arg
-    bc = BC(bcconf,device="cpu",enable_ddp=False)
-    cql = BC(cqlconf,device="cpu",enable_ddp=False)
+    bc = d3rlpy.load_learnable(
+        r"c:\Users\tomt886\PythonProjects\gymnasium_rl\d3rlpy_logs\BC_20251021152546\model_100000.d3"
+    )
+    cql = CQL(cqlconf,device="cpu",enable_ddp=False)
     def fit_algo(algo, name):
         print(f"Training {name}...")
         try:
@@ -114,7 +116,8 @@ if __name__ == "__main__":
             # v2.x uses n_steps
             algo.fit(dataset,n_steps = 100000)
 
-    fit_algo(bc, "BC")
+    #fit_algo(bc, "BC")
+    # load the already trained BC algorithm
     fit_algo(cql, "CQL")
 
     # Simple evaluation instead of OPE (to avoid scope_rl issues)
@@ -130,7 +133,7 @@ if __name__ == "__main__":
             while not done:
                 if hasattr(policy, 'predict') and hasattr(policy.predict, '__call__'):
                     # d3rlpy policy
-                    action = policy.predict([obs])[0]
+                    action = policy.predict(np.asarray([obs], dtype=np.float32))[0]
                 else:
                     # stable_baselines3 policy
                     action, _ = policy.predict(obs, deterministic=True)

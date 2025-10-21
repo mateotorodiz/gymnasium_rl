@@ -1,0 +1,53 @@
+{
+  "observation_shape": [
+    3
+  ],
+  "action_size": 1,
+  "config": {
+    "type": "bc",
+    "params": {
+      "batch_size": 100,
+      "gamma": 0.99,
+      "observation_scaler": {
+        "type": "none",
+        "params": {}
+      },
+      "action_scaler": {
+        "type": "none",
+        "params": {}
+      },
+      "reward_scaler": {
+        "type": "none",
+        "params": {}
+      },
+      "compile_graph": false,
+      "learning_rate": 0.001,
+      "policy_type": "deterministic",
+      "optim_factory": {
+        "type": "adam",
+        "params": {
+          "clip_grad_norm": null,
+          "lr_scheduler_factory": {
+            "type": "none",
+            "params": {}
+          },
+          "betas": [
+            0.9,
+            0.999
+          ],
+          "eps": 1e-08,
+          "weight_decay": 0,
+          "amsgrad": false
+        }
+      },
+      "encoder_factory": {
+        "type": "default",
+        "params": {
+          "activation": "relu",
+          "use_batch_norm": false,
+          "dropout_rate": null
+        }
+      }
+    }
+  }
+}
