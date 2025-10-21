@@ -3,7 +3,7 @@ import numpy as np
 import os
 from stable_baselines3 import SAC
 from stable_baselines3.common.vec_env import SubprocVecEnv
-from d3rlpy.algos import BC, CQL
+from d3rlpy.algos import BC, CQL,BCConfig,CQLConfig
 import d3rlpy
 
 # Set base directory relative to this script
@@ -101,17 +101,18 @@ if __name__ == "__main__":
     print(f"Dataset saved to: {dataset_path}")
 
     # Initialize algorithms with constructor args supported across versions
-    bc = BC()  # avoid batch_size/learning_rate/use_gpu in __init__
-    cql = CQL(alpha=5.0)  # keep only clearly supported arg
-
+    bcconf = BCConfig()  # avoid batch_size/learning_rate/use_gpu in __init__
+    cqlconf = CQLConfig()  # keep only clearly supported arg
+    bc = BC(bcconf,device="cpu",enable_ddp=False)
+    cql = BC(cqlconf,device="cpu",enable_ddp=False)
     def fit_algo(algo, name):
         print(f"Training {name}...")
         try:
             # v0.x / some 1.x support n_epochs
-            algo.fit(dataset, n_epochs=30, batch_size=256, verbose=True)
+            algo.fit(dataset,n_steps = 100000)
         except TypeError:
             # v2.x uses n_steps
-            algo.fit(dataset, n_steps=30_000, batch_size=256, verbose=True)
+            algo.fit(dataset,n_steps = 100000)
 
     fit_algo(bc, "BC")
     fit_algo(cql, "CQL")
