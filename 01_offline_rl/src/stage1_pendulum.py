@@ -5,6 +5,7 @@ from stable_baselines3 import SAC
 from stable_baselines3.common.vec_env import SubprocVecEnv
 from d3rlpy.algos import BC, CQL,BCConfig,CQLConfig
 import d3rlpy
+import torch
 
 # Set base directory relative to this script
 base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -14,7 +15,11 @@ os.makedirs(models_dir, exist_ok=True)
 os.makedirs(datasets_dir, exist_ok=True)
 
 print(f"d3rlpy version: {d3rlpy.__version__}")
+print(f"CUDA available: {torch.cuda.is_available()}")
 
+# Auto-select device
+DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
+print(f"Using device: {DEVICE}")
 
 if __name__ == "__main__":
     def make_env():
@@ -104,9 +109,8 @@ if __name__ == "__main__":
     bcconf = BCConfig()  # avoid batch_size/learning_rate/use_gpu in __init__
     cqlconf = CQLConfig()  # keep only clearly supported arg
     bc = d3rlpy.load_learnable(
-        r"c:\Users\tomt886\PythonProjects\gymnasium_rl\d3rlpy_logs\BC_20251021152546\model_100000.d3"
-    )
-    cql = CQL(cqlconf,device="cpu",enable_ddp=False)
+        r"c:\Users\tomt886\PythonProjects\gymnasium_rl\d3rlpy_logs\BC_20251021152546\model_100000.d3")
+    cql = CQL(cqlconf, device=DEVICE, enable_ddp=False)
     def fit_algo(algo, name):
         print(f"Training {name}...")
         try:
