@@ -135,11 +135,12 @@ if __name__ == "__main__":
             done = False
             
             while not done:
-                if hasattr(policy, 'predict') and hasattr(policy.predict, '__call__'):
-                    # d3rlpy policy
+                # Check if it's a d3rlpy policy or SB3 policy
+                if 'd3rlpy' in str(type(policy)):
+                    # d3rlpy policy expects (batch_size, obs_dim)
                     action = policy.predict(np.asarray([obs], dtype=np.float32))[0]
                 else:
-                    # stable_baselines3 policy
+                    # stable_baselines3 policy expects (obs_dim,) - single observation
                     action, _ = policy.predict(obs, deterministic=True)
                 
                 obs, reward, terminated, truncated, _ = env.step(action)

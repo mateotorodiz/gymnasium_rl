@@ -1,5 +1,6 @@
 # Copilot Instructions for gymnasium_rl
-
+## Behavior
+Do not rewrite code for no reason if I dont ask you to. Justify your decisions. Provide me first with the understanding of the problem, then propose changes.
 ## Project Overview
 This repository contains reinforcement learning experiments in custom environments using the Gymnasium API. The main environments are:
 - **GridWorld**: Flexible grid-based navigation with cliff and target, supporting SARSA, Monte Carlo, and Q-Learning agents.
