@@ -1,5 +1,5 @@
 import d3rlpy
-
+# Loading a dataset, which is probably perfect
 dataset,env = d3rlpy.datasets.get_cartpole()
 
 #setup CQL algorithm
@@ -13,6 +13,7 @@ cql.fit(
     evaluators={
         'environment': d3rlpy.metrics.EnvironmentEvaluator(env), # evaluate with CartPole-v1 environment
     },
+    logger_adapter=d3rlpy.logging.TensorboardAdapterFactory(root_dir='01_offline_rl/logs'),
 )
 
-cql.save_model("cql_cartpole.pt")
+cql.save_model("01_offline_rl/models/cql_cartpole.pt")
