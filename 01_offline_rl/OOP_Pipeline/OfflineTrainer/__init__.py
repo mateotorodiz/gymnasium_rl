@@ -1,14 +1,12 @@
 """Offline trainer module for offline RL."""
 from .DiscreteOfflineTrainer import (
-    DiscreteOfflineTrainer,
-    DiscreteAlgoConfig,
+    OfflineTrainer,
     FitConfig,
     evaluate
 )
 
 __all__ = [
-    'DiscreteOfflineTrainer',
-    'DiscreteAlgoConfig',
+    'OfflineTrainer',
     'FitConfig',
     'evaluate'
 ]

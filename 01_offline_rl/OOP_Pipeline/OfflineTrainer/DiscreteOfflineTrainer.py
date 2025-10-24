@@ -1,53 +1,11 @@
-"""Discrete offline RL trainer using d3rlpy algorithms."""
+"""Offline RL trainer using d3rlpy algorithms."""
 from dataclasses import dataclass, field
-from typing import Optional, Dict, Callable, Any, List
+from typing import Optional, Dict, Any, List
 from pathlib import Path
 import d3rlpy
 from d3rlpy.dataset import ReplayBuffer
 import gymnasium as gym
 import numpy as np
-
-
-@dataclass
-class DiscreteAlgoConfig:
-    """
-    Configuration for discrete offline RL algorithms.
-    
-    This dataclass encapsulates all the hyperparameters needed to configure
-    a discrete d3rlpy algorithm like DiscreteCQL.
-    
-    Attributes:
-        batch_size: Mini-batch size for training.
-        gamma: Discount factor for future rewards.
-        observation_scaler: Observation preprocessor (None, or d3rlpy scaler).
-        action_scaler: Action scaler (optional).
-        reward_scaler: Reward preprocessor (None, or d3rlpy reward scaler).
-        compile_graph: Flag to enable JIT compilation and CUDAGraph.
-        learning_rate: Learning rate for the optimizer.
-        optim_factory: Optimizer factory (default uses AdamFactory).
-        encoder_factory: Encoder factory for neural network architecture.
-        q_func_factory: Q-function factory for value network architecture.
-        n_critics: Number of Q-functions for ensemble.
-        target_update_interval: Interval (in steps) to synchronize the target network.
-        alpha: CQL alpha value for conservative penalty.
-        device: Device to use for training (False, 'cpu', 'cuda:0', True for 'cuda:0', or int for 'cuda:<device>').
-        enable_ddp: Flag to wrap models with DDP for Data Distributed Parallel training.
-    """
-    batch_size: int = 32
-    gamma: float = 0.99
-    observation_scaler: Optional[Any] = None
-    action_scaler: Optional[Any] = None
-    reward_scaler: Optional[Any] = None
-    compile_graph: bool = False
-    learning_rate: float = 6.25e-5
-    optim_factory: Optional[Any] = None
-    encoder_factory: Optional[Any] = None
-    q_func_factory: Optional[Any] = None
-    n_critics: int = 1
-    target_update_interval: int = 8000
-    alpha: float = 1.0
-    device: Any = False  # False, True, int, or str
-    enable_ddp: bool = False
 
 
 @dataclass
@@ -76,46 +34,56 @@ class FitConfig:
     evaluators: Dict[str, Any] = field(default_factory=dict)
 
 
-class DiscreteOfflineTrainer:
+class OfflineTrainer:
     """
-    Trainer for discrete action space offline RL algorithms using d3rlpy.
+    Trainer for offline RL algorithms using d3rlpy.
     
     This class provides a structured interface for training, evaluating, and managing
-    discrete offline RL models. It handles the full lifecycle: initialization,
-    training, model saving/loading, and evaluation.
+    offline RL models. It handles the full lifecycle: initialization, training, 
+    model saving/loading, and evaluation.
+    
+    Works with any d3rlpy algorithm (DiscreteCQL, CQL, BC, IQL, TD3+BC, SAC, etc.).
     
     Attributes:
         env: The Gymnasium environment.
         dataset: The replay buffer containing offline trajectories.
-        algo_config: Configuration dataclass for the algorithm hyperparameters.
+        algo_config: d3rlpy algorithm config object (e.g., DiscreteCQLConfig, CQLConfig).
         fit_config: Configuration dataclass for the training process.
         model_path: Path where the model will be saved/loaded.
-        algo: The d3rlpy algorithm instance (DiscreteCQL, etc.).
+        device: Device to use for training.
+        enable_ddp: Flag for Data Distributed Parallel training.
+        algo: The d3rlpy algorithm instance.
     """
     
     def __init__(
         self,
         env: gym.Env,
         dataset: ReplayBuffer,
-        algo_config: DiscreteAlgoConfig,
+        algo_config: Any,
         fit_config: FitConfig,
-        model_path: str
+        model_path: str,
+        device: Any = False,
+        enable_ddp: bool = False
     ) -> None:
         """
-        Initialize the DiscreteOfflineTrainer.
+        Initialize the OfflineTrainer.
         
         Args:
             env: Gymnasium environment for the task.
             dataset: d3rlpy ReplayBuffer containing offline trajectories.
-            algo_config: Configuration object for algorithm hyperparameters.
+            algo_config: d3rlpy algorithm config object (e.g., d3rlpy.algos.DiscreteCQLConfig()).
             fit_config: Configuration object for the training process.
             model_path: File path where the model will be saved/loaded.
+            device: Device to use (False for CPU, True for cuda:0, int for cuda:<device>, str for specific device).
+            enable_ddp: Whether to enable Data Distributed Parallel training.
         """
         self.env = env
         self.dataset = dataset
         self.algo_config = algo_config
         self.fit_config = fit_config
         self.model_path = Path(model_path)
+        self.device = device
+        self.enable_ddp = enable_ddp
         self.algo: Optional[Any] = None
         
         # Create the algorithm instance with the provided configuration
@@ -125,41 +93,12 @@ class DiscreteOfflineTrainer:
         """
         Create the d3rlpy algorithm instance from the configuration.
         
-        Currently supports DiscreteCQL. This method instantiates the algorithm
-        with all parameters from algo_config.
+        Works with any d3rlpy config object (DiscreteCQL, CQL, BC, IQL, etc.).
         """
-        # Build kwargs for config, only including non-None optional parameters
-        config_kwargs = {
-            'batch_size': self.algo_config.batch_size,
-            'gamma': self.algo_config.gamma,
-            'learning_rate': self.algo_config.learning_rate,
-            'n_critics': self.algo_config.n_critics,
-            'target_update_interval': self.algo_config.target_update_interval,
-            'alpha': self.algo_config.alpha,
-            'compile_graph': self.algo_config.compile_graph,
-        }
-        
-        # Add optional parameters only if they're not None
-        if self.algo_config.observation_scaler is not None:
-            config_kwargs['observation_scaler'] = self.algo_config.observation_scaler
-        if self.algo_config.action_scaler is not None:
-            config_kwargs['action_scaler'] = self.algo_config.action_scaler
-        if self.algo_config.reward_scaler is not None:
-            config_kwargs['reward_scaler'] = self.algo_config.reward_scaler
-        if self.algo_config.optim_factory is not None:
-            config_kwargs['optim_factory'] = self.algo_config.optim_factory
-        if self.algo_config.encoder_factory is not None:
-            config_kwargs['encoder_factory'] = self.algo_config.encoder_factory
-        if self.algo_config.q_func_factory is not None:
-            config_kwargs['q_func_factory'] = self.algo_config.q_func_factory
-        
-        # Create DiscreteCQL configuration
-        config = d3rlpy.algos.DiscreteCQLConfig(**config_kwargs)
-        
-        # Create the algorithm instance
-        self.algo = config.create(
-            device=self.algo_config.device,
-            enable_ddp=self.algo_config.enable_ddp
+        # Create the algorithm instance from the config
+        self.algo = self.algo_config.create(
+            device=self.device,
+            enable_ddp=self.enable_ddp
         )
     
     def load_model(self, model_path: Optional[str] = None) -> None:
@@ -282,23 +221,30 @@ def evaluate(algo, env, num_episodes=20, seed=42):
 
 
 if __name__ == "__main__":
-    dataset,env = d3rlpy.datasets.get_cartpole()
-    algo_config = DiscreteAlgoConfig()
+    dataset, env = d3rlpy.datasets.get_cartpole()
+    
+    # Create algorithm configuration (using d3rlpy config directly)
+    algo_config = d3rlpy.algos.DiscreteCQLConfig(
+        learning_rate=6.25e-5,
+        batch_size=32,
+        gamma=0.99,
+    )
+    
     fit_config = FitConfig()
     env_id = "CartPole-v1"
     model_path = "cql_cartpole.pt"  # adjust to your saved model path
     n_episodes = 20
 
-
-
     env = gym.make(env_id)
-    discretetrainer = DiscreteOfflineTrainer(env=env,
-                                             dataset=dataset,
-                                            algo_config=algo_config,
-                                            fit_config=fit_config,
-                                            model_path=model_path)
-    discretetrainer.fit_model()
-    algo = discretetrainer.algo
+    trainer = OfflineTrainer(
+        env=env,
+        dataset=dataset,
+        algo_config=algo_config,
+        fit_config=fit_config,
+        model_path=model_path
+    )
+    trainer.fit_model()
+    algo = trainer.algo
     mean, std = evaluate(algo, env, n_episodes)
     print(f"Episodes: {n_episodes} | Mean reward: {mean:.2f} | Std: {std:.2f}")
 

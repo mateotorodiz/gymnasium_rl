@@ -8,10 +8,10 @@ if str(basedir) not in sys.path:
     sys.path.insert(0, str(basedir))
 
 import gymnasium as gym
+import d3rlpy
 from DataSetCreator import D3rlpyCreator
 from OfflineTrainer import (
-    DiscreteOfflineTrainer,
-    DiscreteAlgoConfig,
+    OfflineTrainer,
     FitConfig,
     evaluate
 )
@@ -33,11 +33,11 @@ def main():
     env = gym.make(env_name)
     
     # Step 3: Configure algorithm and training
-    algo_config = DiscreteAlgoConfig(
+    # Use d3rlpy config directly (supports any algorithm: DiscreteCQL, CQL, BC, IQL, etc.)
+    algo_config = d3rlpy.algos.DiscreteCQLConfig(
         batch_size=32,
         learning_rate=6.25e-5,
         n_critics=1,
-        device=False  # Use CPU, change to True for cuda:0
     )
     
     fit_config = FitConfig(
@@ -49,12 +49,13 @@ def main():
     
     # Step 4: Create trainer and train
     print("Creating trainer and starting training...")
-    trainer = DiscreteOfflineTrainer(
+    trainer = OfflineTrainer(
         env=env,
         dataset=dataset,
         algo_config=algo_config,
         fit_config=fit_config,
-        model_path=model_path
+        model_path=model_path,
+        device=False  # Use CPU, change to True for cuda:0
     )
     
     trainer.fit_model()
