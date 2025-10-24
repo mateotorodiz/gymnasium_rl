@@ -44,7 +44,8 @@ def main():
         n_steps=10000,
         n_steps_per_epoch=1000,
         experiment_name="pipeline_example",
-        show_progress=True
+        show_progress=True,
+        logger_adapter=d3rlpy.logging.TensorboardAdapterFactory(root_dir='logs')
     )
     
     # Step 4: Create trainer and train

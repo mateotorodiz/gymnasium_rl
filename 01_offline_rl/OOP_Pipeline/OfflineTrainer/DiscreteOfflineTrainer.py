@@ -24,6 +24,7 @@ class FitConfig:
         show_progress: Whether to show progress bar for iterations.
         save_interval: Interval (in epochs) to save model parameters.
         evaluators: Dictionary of evaluator functions for monitoring performance.
+        logger_adapter: Logger adapter factory (e.g., TensorboardAdapterFactory).
     """
     n_steps: Optional[int] = 10000
     n_steps_per_epoch: int = 1000
@@ -32,6 +33,7 @@ class FitConfig:
     show_progress: bool = True
     save_interval: int = 1
     evaluators: Dict[str, Any] = field(default_factory=dict)
+    logger_adapter: Optional[Any] = None
 
 
 class OfflineTrainer:
@@ -155,6 +157,7 @@ class OfflineTrainer:
             with_timestamp=self.fit_config.with_timestamp,
             show_progress=self.fit_config.show_progress,
             save_interval=self.fit_config.save_interval,
+            logger_adapter=self.fit_config.logger_adapter,
         )
         
         print(f"Training completed. Model will be saved to {self.model_path}")
@@ -230,7 +233,9 @@ if __name__ == "__main__":
         gamma=0.99,
     )
     
-    fit_config = FitConfig()
+    fit_config = FitConfig(
+        logger_adapter=d3rlpy.logging.TensorboardAdapterFactory(root_dir='logs')
+    )
     env_id = "CartPole-v1"
     model_path = "cql_cartpole.pt"  # adjust to your saved model path
     n_episodes = 20
