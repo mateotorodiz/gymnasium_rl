@@ -48,7 +48,7 @@ def main():
         env,
         expert_buffer,
         explorer=explorer,
-        n_steps=50000,
+        n_steps=5000,
         n_steps_per_epoch=1000,
         show_progress=True
     )
@@ -63,20 +63,13 @@ def main():
     random_policy = d3rlpy.algos.DiscreteRandomPolicyConfig().create()
     
     # Create dataset creator with 80% expert, 20% random
-    creator = MixedPolicyDatasetCreator(
+    creator=MixedPolicyDatasetCreator(
         env=env,
-        policies=[expert_policy, random_policy],
-        policy_probs=[0.8, 0.2],
+        policy=expert_policy,
         buffer_size=100000
     )
-    
-    # Collect episodes
-    print(f"Collecting {n_collection_episodes} episodes (80% expert, 20% random)...")
-    buffer = creator.collect_episodes(n_episodes=n_collection_episodes, seed=42)
-    
-    # Optionally save the buffer
-    creator.save_buffer(buffer_path)
-    
+    buffer = creator.create_dataset()
+
     # Step 3: Train offline RL on mixed dataset
     print("\nStep 3: Training offline RL (CQL) on mixed dataset...")
     
