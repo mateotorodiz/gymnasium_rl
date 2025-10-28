@@ -48,8 +48,8 @@ def main():
         env,
         expert_buffer,
         explorer=explorer,
-        n_steps=5000,
-        n_steps_per_epoch=1000,
+        n_steps=100000,
+        n_steps_per_epoch=5000,
         show_progress=True
     )
     
@@ -65,8 +65,8 @@ def main():
     # Create dataset creator with 80% expert, 20% random
     creator=MixedPolicyDatasetCreator(
         env=env,
-        policy=expert_policy,
-        buffer_size=100000
+        policies=[expert_policy,random_policy],
+        steps_per_policy=[80000,20000]
     )
     buffer = creator.create_dataset()
 

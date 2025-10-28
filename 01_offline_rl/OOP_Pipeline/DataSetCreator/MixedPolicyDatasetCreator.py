@@ -9,50 +9,72 @@ from d3rlpy.dataset import ReplayBuffer
 
 class MixedPolicyDatasetCreator:
     """
-    Create offline RL datasets by collecting episodes from multiple policies.
+    Create offline RL datasets by collecting data from multiple policies sequentially.
     
     This class allows mixing different policies (expert, random, trained models, etc.)
-    at the episode level. Each episode is collected using one policy, selected based
-    on the provided probability distribution.
+    by collecting a specified number of steps from each policy into a shared buffer.
     
-    Supports both d3rlpy policies (with .predict() method) and arbitrary callables
-    like Stable Baselines models.
+    Supports d3rlpy policies (with .predict() and .collect() methods).
     
     Attributes:
         env: The Gymnasium environment for data collection.
         policies: List of policies to use for data collection.
-        buffer_size: Maximum size of the replay buffer.
+        steps_per_policy: List of steps to collect from each policy.
+        buffer_size: Maximum size of the replay buffer (sum of steps_per_policy).
         buffer: The replay buffer storing collected transitions.
     """
     
     def __init__(
         self,
         env: gym.Env,
-        policy,
-        buffer_size: int = 100000
+        policies: List,
+        steps_per_policy: List[int]
     ) -> None:
         """
         Initialize the MixedPolicyDatasetCreator.
         
         Args:
             env: Gymnasium environment for data collection.
-            policy: Must be d3rlpy models (with .predict()), 
-                     callables that take observations and return actions
-            buffer_size: Maximum number of transitions to store in buffer.
+            policies: List of d3rlpy policies (with .collect() method).
+            steps_per_policy: List of steps to collect from each policy.
+                             The buffer_size will be set to sum(steps_per_policy).
         
-        """        
+        Raises:
+            ValueError: If policies and steps_per_policy have different lengths.
+        """
+        if len(policies) != len(steps_per_policy):
+            raise ValueError(
+                f"Number of policies ({len(policies)}) must match "
+                f"number of steps_per_policy ({len(steps_per_policy)})"
+            )
+        
         self.env = env
-        self.policy = policy
-        self.buffer_size = buffer_size
+        self.policies = policies
+        self.steps_per_policy = steps_per_policy
+        self.buffer_size = sum(steps_per_policy)
         
-        # Create replay buffer
+        # Create replay buffer with total capacity
         self.buffer = d3rlpy.dataset.create_fifo_replay_buffer(
-                limit=buffer_size,
+                limit=self.buffer_size,
                 env=env
         )
 
     def create_dataset(self):
-        self.policy.collect(self.env,self.buffer,n_steps=self.buffer_size)
+        """
+        Collect data from all policies sequentially into the shared buffer.
+        
+        Each policy will collect the specified number of steps in order.
+        
+        Returns:
+            The filled replay buffer.
+        """
+        print(f"Creating dataset with {len(self.policies)} policies...")
+        print(f"Total buffer size: {self.buffer_size}")
+        
+        for i, (policy, n_steps) in enumerate(zip(self.policies, self.steps_per_policy)):
+            print(f"\nCollecting {n_steps} steps from policy {i+1}/{len(self.policies)}...")
+            policy.collect(self.env, self.buffer, n_steps=n_steps)
+        
         return self.buffer
     
     def save_buffer(self, filepath: str) -> None:
@@ -99,15 +121,18 @@ if __name__ == "__main__":
     # Create environment
     env = gym.make("CartPole-v1")
     
-    # Create a random policy (d3rlpy)
+    # Create two policies: random and another random (in practice, one would be expert)
     random_policy = d3rlpy.algos.DiscreteRandomPolicyConfig().create()
+    another_policy = d3rlpy.algos.DiscreteRandomPolicyConfig().create()
 
+    # Create mixed dataset: 50k steps from each policy
     creator = MixedPolicyDatasetCreator(
         env=env,
-        policy=random_policy,
-        buffer_size=100000
+        policies=[random_policy, another_policy],
+        steps_per_policy=[50000, 50000]
     )
     dataset = creator.create_dataset()
+    
     
     # Optionally save
     # creator.save_buffer("mixed_policy_dataset.h5")
