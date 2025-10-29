@@ -1,90 +1,98 @@
 """Create MDPDataset manually from raw logged data."""
+from typing import List
 import numpy as np
 import gymnasium as gym
 import d3rlpy
-from d3rlpy.dataset import MDPDataset
+from d3rlpy.dataset import ReplayBuffer
 
 
 class ManualMDPDatasetCreator:
     """
-    Create MDPDataset by manually collecting observations, actions, rewards, and terminals.
+    Create dataset by manually collecting data from multiple policies using append/clip_episode.
     
-    This approach gives full control over data collection, following d3rlpy's documentation
-    for creating datasets from logged data.
+    This approach gives full control over data collection with incremental buffer writes,
+    similar to MixedPolicyDatasetCreator but without using policy.collect().
     
     Attributes:
         env: Gymnasium environment for data collection.
-        policy: Policy to use for action selection (must have .predict() method).
+        policies: List of policies to use for action selection (must have .predict() method).
+        episodes_per_policy: List of episodes to collect from each policy.
     """
     
-    def __init__(self, env: gym.Env, policy) -> None:
+    def __init__(self, env: gym.Env, policies: List, episodes_per_policy: List[int]) -> None:
         """
         Initialize the creator.
         
         Args:
             env: Gymnasium environment.
-            policy: d3rlpy policy with .predict() method.
+            policies: List of d3rlpy policies with .predict() method.
+            episodes_per_policy: List of episodes to collect from each policy.
+        
+        Raises:
+            ValueError: If policies and episodes_per_policy have different lengths.
         """
+        if len(policies) != len(episodes_per_policy):
+            raise ValueError(
+                f"Number of policies ({len(policies)}) must match "
+                f"number of episodes_per_policy ({len(episodes_per_policy)})"
+            )
+        
         self.env = env
-        self.policy = policy
+        self.policies = policies
+        self.episodes_per_policy = episodes_per_policy
     
-    def create_dataset(self, n_episodes: int) -> MDPDataset:
+    def create_dataset(self, buffer_limit: int = 1000000) -> ReplayBuffer:
         """
-        Collect data and create MDPDataset.
+        Collect data from all policies and create ReplayBuffer using incremental writes.
         
         Args:
-            n_episodes: Number of episodes to collect.
+            buffer_limit: Maximum buffer size (default: 1M transitions).
         
         Returns:
-            MDPDataset containing collected transitions.
+            ReplayBuffer containing collected transitions.
         """
-        observations = []
-        actions = []
-        rewards = []
-        terminals = []
-        
-        print(f"Collecting {n_episodes} episodes...")
-        
-        for episode in range(n_episodes):
-            obs, _ = self.env.reset()
-            done = False
-            
-            while not done:
-                # Store observation
-                observations.append(obs)
-                
-                # Get action from policy
-                action = self.policy.predict(np.array([obs]))[0]
-                actions.append(action)
-                
-                # Step environment
-                next_obs, reward, terminated, truncated, _ = self.env.step(action)
-                done = terminated or truncated
-                
-                # Store reward and terminal flag
-                rewards.append(reward)
-                terminals.append(1.0 if terminated else 0.0)
-                
-                obs = next_obs
-            
-            if (episode + 1) % 10 == 0:
-                print(f"Collected {episode + 1}/{n_episodes} episodes")
-        
-        # Convert to numpy arrays
-        observations = np.array(observations, dtype=np.float32)
-        actions = np.array(actions, dtype=np.int32)
-        rewards = np.array(rewards, dtype=np.float32)
-        terminals = np.array(terminals, dtype=np.float32)
-        
-        print(f"\nDataset shape: {observations.shape[0]} transitions")
-        
-        # Create and return MDPDataset
-        return d3rlpy.dataset.MDPDataset(
-            observations=observations,
-            actions=actions,
-            rewards=rewards,
-            terminals=terminals
+        # Create empty buffer
+        buffer = d3rlpy.dataset.create_fifo_replay_buffer(
+            limit=buffer_limit,
+            env=self.env
         )
+        
+        total_episodes = sum(self.episodes_per_policy)
+        print(f"Collecting {total_episodes} episodes from {len(self.policies)} policies...")
+        
+        episode_count = 0
+        
+        # Collect from each policy sequentially
+        for policy_idx, (policy, n_episodes) in enumerate(zip(self.policies, self.episodes_per_policy)):
+            print(f"\nPolicy {policy_idx + 1}/{len(self.policies)}: collecting {n_episodes} episodes")
+            
+            for episode in range(n_episodes):
+                obs, _ = self.env.reset()
+                done = False
+                
+                while not done:
+                    # Get action from policy
+                    action = policy.predict(np.array([obs]))[0]
+                    
+                    # Step environment
+                    next_obs, reward, terminated, truncated, _ = self.env.step(action)
+                    done = terminated or truncated
+                    
+                    # Append transition to buffer incrementally
+                    buffer.append(obs, action, reward)
+                    
+                    obs = next_obs
+                
+                # Mark end of episode
+                buffer.clip_episode(terminated)
+                
+                episode_count += 1
+                if episode_count % 10 == 0:
+                    print(f"Collected {episode_count}/{total_episodes} episodes")
+        
+        print(f"\nDataset created with {buffer.transition_count} transitions")
+        
+        return buffer
 
 
 if __name__ == "__main__":
@@ -94,10 +102,14 @@ if __name__ == "__main__":
     env = gym.make("CartPole-v1")
     random_policy = d3rlpy.algos.DiscreteRandomPolicyConfig().create()
     
-    # Create dataset
+    # Create dataset (keeping same interface as before by wrapping in lists)
     print("Creating dataset....")
-    creator = ManualMDPDatasetCreator(env=env, policy=random_policy)
-    dataset = creator.create_dataset(n_episodes=200000)
+    creator = ManualMDPDatasetCreator(
+        env=env, 
+        policies=[random_policy],
+        episodes_per_policy=[200000]
+    )
+    dataset = creator.create_dataset()
     
     # Train CQL on the dataset
     print("\nTraining CQL...")
